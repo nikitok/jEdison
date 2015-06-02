@@ -5,22 +5,23 @@ package com.siberianapps.jedison;
  */
 public interface GPIO {
 
-    public interface Pin {
-        int getGPIO();
+    interface Pin {
+        //get hardware pin number
+        int getHWPin();
     }
 
-    public static enum Mode {
+    enum Mode {
         INPUT("in"),
         OUTPUT("out");
 
         public String cmd;
 
-        private Mode(final String CMD) {
+        Mode(final String CMD) {
             cmd = CMD;
         }
     }
 
-    public static enum Value {
+    enum Value {
         HIGH, LOW
     }
 

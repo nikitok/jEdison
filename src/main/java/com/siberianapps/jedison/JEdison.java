@@ -13,15 +13,17 @@ import java.util.Map;
 public class JEdison implements GPIO {
 
     private Map<GPIO.Pin, GPIO.Mode> pinCache = new HashMap<GPIO.Pin, GPIO.Mode>();
+    private static final String COMAND_PREFIX = "/sys/class/gpio/";
 
     @Override
     public void pinMode(Pin pin, Mode mode) {
 
-        //Initialize PIN
+        //initialize PIN
         if (!pinCache.containsKey(pin)) {
-            try (FileOutputStream out = new FileOutputStream("/sys/class/gpio/export")) {
+            //echo mode0 > /sys/kernel/debug/gpio_debug/gpio27/current_pinmux
+            try (FileOutputStream out = new FileOutputStream(COMAND_PREFIX + "/sys/class/gpio/export")) {
                 PrintWriter pw = new PrintWriter(out);
-                pw.print(pin.getGPIO());
+                pw.print(pin.getHWPin());
                 pw.close();
                 pinCache.put(pin, mode);
             } catch (IOException exception) {
@@ -29,9 +31,9 @@ public class JEdison implements GPIO {
             }
         }
 
-        // Initialize Pin Mode (IN/OUT)
+        //initialize Pin Mode (IN/OUT)
         if (pinCache.containsKey(pin) && pinCache.get(pin) != mode) {
-            try (FileOutputStream out = new FileOutputStream("/sys/class/gpio/gpio" + pin.getGPIO() + "/direction")) {
+            try (FileOutputStream out = new FileOutputStream(COMAND_PREFIX + "gpio" + pin.getHWPin() + "/direction")) {
                 PrintWriter pw = new PrintWriter(out);
                 pw.print(mode == Mode.INPUT ? "in" : "out");
                 pw.close();
@@ -45,13 +47,19 @@ public class JEdison implements GPIO {
 
     @Override
     public void digitalWrite(Pin pin, Value value) {
-
+        try (FileOutputStream out = new FileOutputStream(COMAND_PREFIX + "gpio" + pin.getHWPin() + "/value")) {
+            PrintWriter pw = new PrintWriter(out);
+            pw.print(value == null || value == Value.LOW ? "0" : "1");
+            pw.close();
+        } catch (IOException exception) {
+            System.out.println(exception);
+        }
     }
 
 
     @Override
     public Value digitalRead(Pin pin) {
-        try (FileInputStream in = new FileInputStream("/sys/class/gpio/gpio" + pin.getGPIO() + "/value")) {
+        try (FileInputStream in = new FileInputStream(COMAND_PREFIX + "gpio" + pin.getHWPin() + "/value")) {
             return in.read() == 1 ? Value.HIGH : Value.LOW;
         } catch (IOException exception) {
             System.out.println(exception);
@@ -60,53 +68,56 @@ public class JEdison implements GPIO {
     }
 
 
+    /**
+     * maps with edison pins
+     * http://www.emutexlabs.com/project/215-intel-edison-gpio-pin-multiplexing-guide
+     * https://communities.intel.com/message/279206
+     */
     public enum Analog implements GPIO.Pin {
-        A0(36),
-        A1(36),
-        A2(23),
-        A3(22),
-        A4(21),
-        A5(20);
+        A0(44),
+        A1(45),
+        A2(46),
+        A3(47),
+        A4(14),
+        A5(165);
 
-        public int gpio;
+        public int hwPin;
 
-        private Analog(final int GPIO) {
-            gpio = GPIO;
+        Analog(final int hwPin) {
+            this.hwPin = hwPin;
         }
 
         @Override
-        public int getGPIO() {
-            return gpio;
+        public int getHWPin() {
+            return hwPin;
         }
     }
 
     public enum Digital implements GPIO.Pin {
-        RX(51),
-        TX(51),
-        D0(50),
-        D1(51),
-        D2(14),
-        D3(15),
-        D4(28),
-        D5(17),
-        D6(24),
-        D7(27),
-        D8(26),
-        D9(19),
-        D10(16),
-        D11(25),
-        D12(38),
-        D13(39);
+        D0(130),
+        D1(131),
+        D2(128),
+        D3(12),
+        D4(129),
+        D5(13),
+        D6(182),
+        D7(48),
+        D8(49),
+        D9(183),
+        D10(41),
+        D11(43),
+        D12(42),
+        D13(40);
 
-        public int gpio;
+        public int hwPin;
 
-        private Digital(final int GPIO) {
-            gpio = GPIO;
+        Digital(final int hwPin) {
+            this.hwPin = hwPin;
         }
 
         @Override
-        public int getGPIO() {
-            return gpio;
+        public int getHWPin() {
+            return hwPin;
         }
     }
 }
